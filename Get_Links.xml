@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Get Links">
+  <Source>
+  
+  import java.*;
+import sailpoint.object.*;
+import sailpoint.object.Identity;
+import sailpoint.api.SailPointContext;
+import sailpoint.object.Application;
+import sailpoint.object.Link;
+import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
+
+
+Logger log = Logger.getLogger("AD.Account exists or not------rule");
+log.setLevel(Level.DEBUG);
+log.error("-----------getDN rule Starts------------");
+
+public static checkADLink(String identityName, SailPointContext context)
+{
+Identity identityObject = context.getObjectByName(Identity.class,identityName);
+String appName = "Active_Directory";
+
+if (identityObject != null ) {
+log.error("-----user is --------"+ identityObject);
+Application adApp = context.getObjectByName(Application.class, appName);
+List adAccounts = identityObject.getLinks(adApp);
+if ( adAccounts != null ) { 
+  
+  return true;
+}
+  else
+    
+    return false;
+
+
+ } 
+}
+  
+  
+  
+  </Source>
+</Rule>

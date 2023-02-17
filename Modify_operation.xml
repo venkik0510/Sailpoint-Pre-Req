@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Modify operation" type="JDBCOperationProvisioning">
+  <Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
+  <Signature returnType="ProvisioningResult"/>
+  <Source>import java.sql.Connection;
+  import java.sql.DriverManager;
+  import java.sql.ResultSet;
+  import java.sql.PreparedStatement;
+  import java.sql.SQLException;
+  import java.sql.Types;
+  import java.util.List;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.connector.JDBCConnector;
+  import sailpoint.object.Application;
+  import sailpoint.object.ProvisioningPlan;
+  import sailpoint.object.ProvisioningPlan.AccountRequest;
+  import sailpoint.object.ProvisioningPlan.AttributeRequest;
+  import sailpoint.object.ProvisioningPlan.PermissionRequest;
+  import sailpoint.object.ProvisioningResult;
+  import sailpoint.object.Schema;
+
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+
+
+
+
+  Logger log = Logger.getLogger("AnyLoggerName");
+  log.setLevel(Level.DEBUG);
+
+  public String getAttributeRequestValue(AccountRequest acctReq, String attribute) {
+    if ( acctReq != null ) {
+      AttributeRequest attrReq = acctReq.getAttributeRequest(attribute);
+      if ( attrReq != null ) {
+        return (String)attrReq.getValue();
+      }
+    }
+    return null;
+  }
+
+
+  log.error("JDBC Provisioning update");
+
+  ProvisioningResult result = new ProvisioningResult();
+  PreparedStatement statement=null;
+  PreparedStatement stmt=null;
+  AttributeRequest attrReq=null;
+
+  String firstName = "";
+  String fname = "";
+  String lastName = "";
+  String lname= "";
+  String Manager = "";
+  String manager= "";
+
+  /*
+		      getFirstname value from db
+		      firstName = some value from DB;
+		 */
+
+  if ( plan != null ) {
+    log.error( "plan [" + plan.toXml() + "]" );
+    System.out.println("Plan in XML " +  plan.toXml());
+    List accounts = plan.getAccountRequests();
+    if ( ( accounts != null ) &amp;&amp; ( accounts.size() &gt; 0 ) ) {
+      for ( AccountRequest account : accounts ) {
+        try {
+          log.error( "Operation [" + account.getOperation() + "] detected." );
+          if ( AccountRequest.Operation.Modify.equals( account.getOperation() ) ) {
+
+            if(account.getAttributeRequest("department")!=null){
+
+              log.error("Inside Remove" +account.getAttributeRequest("department").getOperation().toString() );
+              if(account.getAttributeRequest("department").getOperation().equals(ProvisioningPlan.Operation.Remove)){
+
+                log.error("Inside Remove" +account.getAttributeRequest("department").getOperation().toString() );
+                statement = connection.prepareStatement( "delete from emp where id=? and department=?" );
+                statement.setString(1, account.getNativeIdentity());
+                statement.setString(2, getAttributeRequestValue(account,"department"));
+                int i=statement.executeUpdate();
+                log.error("Result "+i);
+                result.setStatus( ProvisioningResult.STATUS_COMMITTED );
+
+              }
+
+              else{
+
+                if((account.getNativeIdentity())!=null){
+                  if(account.getAttributeRequest("department").getOperation().equals(ProvisioningPlan.Operation.Add)){
+
+
+                    try {
+                      //Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+                      stmt = connection.prepareStatement("select id,firstname,lastname,department,manager from emp where id = ?");
+                      stmt.setString(1, account.getNativeIdentity());
+                      ResultSet rs = stmt.executeQuery();
+                      //int i=stmt.executeUpdate();
+                      //log.error("Result "+i);
+                      //ResultSet rs;
+                      log.error("Result set" +rs);
+
+
+                      while(rs.next()){
+
+
+                        log.error("Inside while-iterating for Email,First Name,Last Name");
+                        Manager=rs.getString("manager");
+                        log.error("Manager" +Manager);
+                        firstName=rs.getString("firstname");
+                        log.error("First Name" +firstName);
+                        lastName=rs.getString("lastname"); 
+                        log.error("Last Name" +lastName);
+
+
+                      }
+
+
+                      if(getAttributeRequestValue(account,"firstname") == null || getAttributeRequestValue(account,"firstname") == "")
+                      {
+                        fname = firstName;
+                      }
+                      else
+                      {
+                        fname = getAttributeRequestValue(account,"firstname");
+                      }
+                      if(getAttributeRequestValue(account,"lastname") == null || getAttributeRequestValue(account,"lastname") == "")
+                      {
+                        lname = lastName;
+                      }
+                      else
+                      {
+                        lname = getAttributeRequestValue(account,"lastname");
+                      }
+                      if(getAttributeRequestValue(account,"manager") == null || getAttributeRequestValue(account,"manager") == "")
+                      {
+                        manager= Manager;
+                      }
+                      else
+                      {
+                        manager = getAttributeRequestValue(account,"manager");
+                      }
+
+                    }catch (SQLException e) {
+                      e.printStackTrace();
+                    }
+
+                    statement = connection.prepareStatement( "insert into emp (id,firstname,lastname,department,manager) values (?,?,?,?,?)" );
+                    statement.setString(1, (String) account.getNativeIdentity());
+                    statement.setString (2, fname);
+                    statement.setString(3, lname);
+                    statement.setString(4, getAttributeRequestValue(account,"department"));
+                    statement.setString(5, manager);
+                    log.error("Statement"+statement);
+                    int i=statement.executeUpdate();
+                    log.error("Result "+i);
+                    result.setStatus( ProvisioningResult.STATUS_COMMITTED );
+                  }
+                }
+              }
+            }	
+
+
+          }
+        }
+        catch( SQLException e ) {
+          log.error( e );
+          result.setStatus( ProvisioningResult.STATUS_FAILED );
+          result.addError( e );
+        }
+      }
+    } 
+  }</Source>
+</Rule>

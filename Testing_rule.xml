@@ -1,0 +1,398 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Testing rule">
+  <Source>
+  /*   import java.util.ArrayList;
+  import java.util.List;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.object.Attributes;
+  import sailpoint.object.Custom;
+
+  Custom custom = context.getObject(Custom.class, "UserDetails");
+  List list = new ArrayList();
+  if(custom != null)
+  {
+    Attributes customAttrs = custom.getAttributes();
+    if(customAttrs != null)
+    {
+      list = customAttrs.getList("Job Title");
+    }
+  }
+  return list;*/
+  /* import java.text.DateFormat;  
+  import java.text.SimpleDateFormat;  
+  import java.util.Date;  
+  import java.util.Calendar; 
+
+
+  /*long millis = 1000 * 60 * 60 * 24;
+  Date date1 = new Date(date.getTime()-millis);  
+  DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");  
+  String strDate = dateFormat.format(date);
+  String strYes = dateFormat.format(date1);
+
+  return strDate;
+
+  //long millis = 1000 * 60 * 60 * 24;
+  Date startDate = new Date();
+  Date endDate = new Date();
+  Calendar c = Calendar.getInstance();
+  c.setTime(startDate);
+  c.add(Calendar.DATE, -3);
+  //c.add(Calendar.MONTH, -1);
+  //c.add(Calendar.YEAR, -1);
+  startDate = c.getTime();
+  DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");  
+  String strDate = dateFormat.format(startDate);
+  String strYes = dateFormat.format(endDate);  
+ long diff = startDate.getTime()-endDate.getTime();
+
+  int i = (int)diff/(1000*60*60*24);
+
+  int j = 90-i;
+
+  return j;*/
+
+  // long in = "133063434308631950";
+
+  // DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");  
+  //String strDate = dateFormat.format(in);
+
+  /* import sailpoint.object.Identity;
+  import sailpoint.object.QueryOptions;
+  import sailpoint.object.Filter;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link; 
+  import java.util.*;
+  import java.lang.String;
+  import java.util.List;
+  import java.util.ArrayList;
+  import sailpoint.api.SailPointContext;
+
+
+  List filters = new ArrayList();
+
+  filters.add(Filter.eq("links.application.name", "HRMS"));
+    filters.add(Filter.eq("jobtitle", "Information Security Analyst"));
+
+    QueryOptions qo = new QueryOptions();
+
+    qo.setFilters(filters);
+
+    Iterator it = context.search(Identity.class, qo);
+    List arr=new ArrayList();
+
+    if(it != null){
+      while(it.hasNext()){
+        Identity identity = it.next();
+
+        String title = identity.getAttribute("department");
+        arr.add(title);
+      }
+    }
+    return arr;*/
+
+  /*  import sailpoint.object.Identity;
+  import sailpoint.object.QueryOptions;
+  import sailpoint.object.Filter;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link; 
+  import java.util.*;
+  import java.lang.String;
+  import java.util.List;
+  import java.util.ArrayList;
+  import sailpoint.api.SailPointContext;
+
+  if(value != null){
+    List filters = new ArrayList();
+
+
+    filters.add(Filter.eq("jobtitle", value.toString()));
+
+    QueryOptions qo = new QueryOptions();
+
+    qo.setFilters(filters);
+
+    Iterator it = context.search(Identity.class, qo);
+    List arr=new ArrayList();
+
+    if(it != null){
+      while(it.hasNext()){
+        Identity identity = it.next();
+
+        String title = identity.getAttribute("jobtitle");
+        arr.add(title);
+      }
+    }
+  }
+  return arr; */
+
+  /*  import sailpoint.object.Identity;
+  import sailpoint.object.QueryOptions;
+  import sailpoint.object.Filter;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link; 
+  import java.util.*;
+
+  import java.lang.String;
+  import java.util.List;
+  import java.util.ArrayList;
+  import sailpoint.api.SailPointContext;
+
+  List val= new ArrayList();
+  val.add("Information Security Analyst");
+QueryOptions queryOptions = new QueryOptions();
+  if(val != null){
+
+    log.error("value:" +val);
+    List filters = new ArrayList();
+
+    for( String job : val)
+    {
+
+      filters.add(Filter.eq("jobtitle", job));
+
+    }
+    log.error("filters:" +filters);
+    Filter fil = Filter.or(filters);
+    log.error("filter:" +fil);
+    queryOptions.addFilter(fil);
+
+    return queryOptions;*/
+  /*  import java.*;
+  import sailpoint.object.*;
+  import sailpoint.object.Identity;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+
+
+
+  Logger log = Logger.getLogger("AD.manager.rule");
+  log.setLevel(Level.DEBUG);
+  log.error("-----------getManagerDN rule Starts------------");
+
+
+Identity identity= context.getObjectByName(Identity.class, "1a2a3b4b");
+  String appName = "Active_Directory";
+  Identity manager = identity.getManager();
+
+
+ Application adApp = context.getObjectByName(Application.class, appName);
+    Link Accounts = manager.getLinks(adApp);
+/*if ( adAccounts != null ) { 
+      for ( int i=0; i&lt;adAccounts.size(); i++ ) {  
+        Link adLink = (Link)adAccounts.get(i);
+
+        managerDN = adLink.getAttribute("distinguishedName");
+      }
+}return managerDN;
+
+  if (manager != null ) {
+    log.error("-----manager is --"+ manager);
+    String managerDN = null;
+    Application adApp = context.getObjectByName(Application.class, appName);
+    List adAccounts = manager.getLinks(adApp);
+
+
+    if ( adAccounts != null ) { 
+      for ( int i=0; i&lt;adAccounts.size(); i++ ) {  
+        Link adLink = (Link)adAccounts.get(i);
+
+        managerDN = adLink.getAttribute("distinguishedName");
+        log.error("-----managerDN is --"+ managerDN);
+
+      }            return managerDN;  
+
+    }            else
+    {                log.error("-----managerLink not found --");       
+
+     return null;
+    }
+
+  }
+
+ // String dn = manager.getAttribute("distinguishedName");
+
+ // return mgrn;
+  return Accounts;*/
+
+  /*  import java.util.List;
+
+  import sailpoint.object.Identity;
+  import sailpoint.object.Link;
+  import sailpoint.object.ProvisioningPlan;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+  import sailpoint.api.SailPointContext;
+
+  public static getJoinerApplications(SailPointContext context)
+  {   
+    Custom custom = context.getObject(Custom.class, "JoinerApplications");
+    List list = new ArrayList();
+    if(custom!= null)
+    {
+      Attributes customAttrs = custom.getAttributes();
+      if(customAttrs != null)
+      {
+
+        list = customAttrs.getList("JoinerApplications");
+
+log.error("list" +list);
+      }
+    }
+
+    return list;
+  }*/
+  /*
+  public static List createJoinerPlan()
+  {
+   // ProvisioningPlan plan = new ProvisioningPlan();
+
+
+
+    List joinerApplications = getJoinerApplications(context);
+    log.error("apps:" +joinerApplications);
+
+return joinerApplications;
+  }
+*/
+  /*List filters = new ArrayList();
+filters.add(Filter.eq("links.application.name", "Active_Directory"));
+filters.add(Filter.eq("inactive", false));                           
+
+QueryOptions qo = new QueryOptions();
+
+qo.setFilters(filters);
+  Map retmap = new HashMap();
+
+Iterator it = context.search(Identity.class, qo);
+
+  if (it != null)
+  {
+    while(it.hasNext())
+  {
+    Identity id = it.next();
+
+    String name= id.getName();
+   String dispname = id.getDisplayName();
+   retmap.put(name,dispname);
+    }
+
+    return retmap;
+  }*/
+  /*import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
+  LocalDate dt = LocalDate.now();
+		LocalDate yesterday = dt.minusDays(1);
+
+		long count = ChronoUnit.DAYS.between(dt, yesterday);
+		System.out.println(dt);
+		System.out.println(yesterday);
+		System.out.println(count);
+
+  return count;*/
+
+  /*import java.util.ArrayList;
+            import java.util.List;
+
+            import sailpoint.api.SailPointContext;
+            import sailpoint.object.Attributes;
+            import sailpoint.object.Custom;  
+
+            Custom custom = context.getObjectByName(Custom.class, "UserDetails");
+            List list = new ArrayList();
+            if(custom!= null)
+            {
+            Map Data = custom.getAttributes().getMap();
+            log.error("map:" +Data);
+
+              if(Data.size()&gt;0)
+              {
+                list=custom.getList("Job Title");
+                log.error("list:" +list);
+
+
+
+            }
+            }
+  return list;*/
+/*
+  import sailpoint.object.Identity;
+  import java.text.*;
+  import java.util.*;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link;
+  import sailpoint.object.Attributes;
+
+
+  Identity identity = context.getObjectByName(Identity.class, "AG100030");
+  Application appName = context.getObjectByName(Application.class, "Active_Directory");
+  String value="";
+  List links = identity.getLinks(appName);
+  for(Link adLink : links){
+
+    Attributes ar = adLink.getAttributes();
+
+    value = ar.getString("pwdLastSet");
+
+    log.error("value:" +value);
+  }
+  SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+
+  Date d1 = formatter.parse(value);
+  log.error("d1:" +d1);
+  log.error(d1.getTime());
+  log.error(formatter.format(d1));
+
+  Date curDate = new Date();
+  log.error("curDate" +curDate);
+  log.error(curDate.getTime());
+
+  long diff =curDate.getTime()-d1.getTime();
+
+  log.error("diff:" +diff);
+
+  numberOfDays = (int)(diff / (1000*60*60*24));
+  log.error("numberOfDays:" +numberOfDays);
+
+  noofDays = numberOfDays.toString();
+  log.error("noofDays:" +noofDays);*/
+
+  /*import sailpoint.object.QueryOptions;
+  import sailpoint.object.ManagedAttribute;
+  import java.util.List;
+  import sailpoint.object.Filter;
+  
+  String grpdn="";
+  QueryOptions qo = new QueryOptions();
+  qo.addFilter(Filter.eq("displayName", "MYLAB\\Sailpoint_Test"));
+  
+  List list = context.getObjects(ManagedAttribute.class, qo);
+  
+  for(ManagedAttribute managedAttribute : list)
+  {
+    grpdn = managedAttribute.getValue();
+    
+  }
+  
+  return grpdn;*/
+  
+  import sailpoint.object.Bundle;
+ import sailpoint.api.SailPointContext;
+  import java.util.List;
+  
+  Bundle bundle = context.getObjectByName(Bundle.class, "Business");
+  
+  List list = bundle.getRequirements();
+  
+  return list;
+ 
+  
+  
+
+
+  </Source>
+</Rule>

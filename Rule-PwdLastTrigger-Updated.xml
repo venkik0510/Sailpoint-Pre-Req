@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Rule-PwdLastTrigger-Updated">
+  <Description>Populting identities for a Location</Description>
+  <ReferencedRules>
+    <Reference class="sailpoint.object.Rule" name="Rule-PwdLastSet_Reference"/>
+  </ReferencedRules>
+  <Signature returnType="String">
+    <Inputs>
+      <Argument name="log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="environment" type="Map">
+        <Description>
+          Arguments passed to the aggregation or refresh task.
+        </Description>
+      </Argument>
+      <Argument name="identity">
+        <Description>
+          The Identity object that represents the user
+          that is being aggregated.
+        </Description>
+      </Argument>
+      <Argument name="attributeDefinition">
+        <Description>
+          The AttributeDefinition object for this attribute.
+        </Description>
+      </Argument>
+      <Argument name="link">
+        <Description>
+          The Link object from the Identity, if this is an application
+          mapping rule.  For global mapping rules this will be void.
+        </Description>
+      </Argument>
+      <Argument name="attributeSource">
+        <Description>
+          The AttributeSource object.
+        </Description>
+      </Argument>
+      <Argument name="oldValue">
+        <Description>
+          The original value of the application account attribute.
+        </Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="attributeValue">
+        <Description>
+          The value of the attribute that should be populated.
+          The rule should return this value.
+        </Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>
+  import java.util.*;
+  import java.io.*;
+  import java.lang.String;
+  import sailpoint.object.Identity;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link;
+  import sailpoint.api.IdentityService;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.tools.GeneralException;
+  import java.text.SimpleDateFormat;  
+  import java.util.Date;
+  import java.text.DateFormat;
+  import sailpoint.object.EmailOptions;
+  import sailpoint.object.EmailTemplate;
+  import sailpoint.object.QueryOptions;
+  import sailpoint.object.Filter;
+  import java.util.Iterator;
+  import sailpoint.tools.Util;
+  import sailpoint.object.AuditEvent;
+  import sailpoint.server.Auditor;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+
+
+  Logger log = Logger.getLogger("Rule.Password change trigger");
+  log.setLevel(Level.DEBUG);
+  log.error("********");
+  String remainingDays="";
+  String emailTemplate="";
+  String emailid="";
+  String pwdSet="";
+  String appName="";
+
+  QueryOptions qo = new QueryOptions();
+  List identities=context.getObjects(Identity.class, qo);
+  log.error("List:" +identities);
+  String count="";
+  if(identities != null &amp;&amp; identities.size() &gt; 0)
+  {
+    for(Identity identity : identities)
+    {     
+      emailid=identity.getEmail();
+      log.error("emailid:" +emailid);
+      List links = identity.getLinks();
+      log.error("Links:" +links);
+      for(Link link : links)
+      {
+        count = link.getAttribute("pwdExpires");
+        pwdSet = link.getAttribute("pwdLastSet");
+        appName = link.getApplicationName();
+        log.error("pwdset:" +pwdSet);
+        log.error("Count:" +count);
+        
+        if(Util.isNotNullOrEmpty(count))
+        {
+          remainingDays = (90-Integer.valueOf(count)).toString();
+          log.error("inside null count loop");
+          if((count.equals("46")) || (count.equals("75")) || (count.equals("85")) || (count.equals("86")) || (count.equals("87")) || (count.equals("88")) || (count.equals("89")))
+          {
+            log.error("inside count if loop");
+            String emailstatus=sendEmailNotification(emailTemplate,  identity,  count, remainingDays, appName);
+            log.error("emailstatus:" +emailstatus);
+            if (emailstatus.equalsIgnoreCase("Success"))
+            {
+              log.error("inside audit if loop");
+              AuditEvent event = new AuditEvent();
+              event.setTarget(identity.getName());
+              event.setAction("EmailNotify");
+              event.setApplication(appName);
+              event.setString1(pwdSet);
+              event.setString2(emailid);
+              event.setString3(count);
+              event.setString4(remainingDays);
+              Auditor.log(event);
+              context.saveObject(event);
+              context.commitTransaction();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  </Source>
+</Rule>

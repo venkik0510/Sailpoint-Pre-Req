@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Mover Workflow Library">
+  <Source>
+
+  import java.util.List;
+
+  import sailpoint.object.Identity;
+  import sailpoint.object.Link;
+  import sailpoint.object.ProvisioningPlan;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+  import sailpoint.api.SailPointContext;
+
+
+  Logger log = Logger.getLogger("Mover_Event");
+  log.setLevel(Level.DEBUG);
+
+  Custom custom = context.getObjectByName(Custom.class, "Custom_Mover");
+  List Attributes = custom.get("MoverAttributes");
+  Map mappings = custom.get("MoverADMappings");
+
+  log.error("attribute value:" +attribute);
+  Identity identity = context.getObjectByName(Identity.class, identityName);
+  String fname = identity.getFirstname();
+  String lname = identity.getLastname();
+  String dn = "CN="+fname+" "+lname+",OU=Accounts,OU=Sailpoint Users,DC=mylab,DC=local";
+
+  ProvisioningPlan plan = new ProvisioningPlan();
+
+  plan.setIdentity(identity);
+
+
+  AccountRequest Ar = new AccountRequest();
+  Ar.setOperation(AccountRequest.Operation.Modify);
+  Ar.setApplication("Active_Directory");
+  Ar.setNativeIdentity(dn);
+  for(String attribute : Attributes)
+  {
+  AttributeRequest attr_Req = new AttributeRequest();
+    String admapping = mappings.get(attribute);
+    attr_Req.setName(admapping);
+    String ADAttribute = identity.getAttribute(attribute);
+    attr_Req.setValue(ADAttribute);
+    
+    Ar.add(attr_Req);
+  } 
+  plan.add(Ar);
+   log.error("plan:::::::" +plan.toXml());
+    workflow.put("plan", plan);
+  
+  return plan;
+
+  </Source>
+</Rule>

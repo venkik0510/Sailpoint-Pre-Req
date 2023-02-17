@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Rule-PwdLastSet_Reference">
+  <Description>A rule used by finding the password reset countdown, trigger email and audit trail for the password reset.</Description>
+  <Signature returnType="Object">
+    <Inputs>
+      <Argument name="log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="handler">
+        <Description>
+          The workflow handler associated with the current WorkflowContext.
+        </Description>
+      </Argument>
+      <Argument name="workflow">
+        <Description>
+          The current Workflow definition.
+        </Description>
+      </Argument>
+      <Argument name="step">
+        <Description>
+          The current Step.
+        </Description>
+      </Argument>
+      <Argument name="item">
+        <Description>
+          The WorkItem being processed.
+        </Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="Object">
+        <Description>
+          The result of the rule; dependent on the rule itself.
+        </Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>
+  import java.util.*;
+  import java.io.*;
+  import java.lang.String;
+  import java.util.List;
+  import java.util.ArrayList;
+  import java.util.Iterator;
+  import sailpoint.object.Identity;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link;
+  import sailpoint.api.IdentityService;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.tools.GeneralException;
+  import java.text.SimpleDateFormat;  
+  import java.util.Date;
+  import java.text.DateFormat;
+  import sailpoint.object.EmailOptions;
+  import sailpoint.object.EmailTemplate;
+  import sailpoint.object.QueryOptions;  
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+
+  Logger log = Logger.getLogger("Rule.Password change trigger");
+  log.setLevel(Level.DEBUG);
+  log.error("********");
+  
+  public String sendEmailNotification(String emailTemplate, Identity identity, String count, String remainingDays, String appName)
+  {
+    log.error("inside email notification");
+    String pwdLastSet = identity.getAttribute("pwdLastSet");
+    log.error("pwdLastSet:" +pwdLastSet);
+    EmailTemplate template = context.getObjectByName(EmailTemplate.class, "Password reset Email Notify");
+    EmailOptions options = new EmailOptions();
+    options.setTo(emailid);
+    Map args = new HashMap();
+    args.put("appName", appName);
+    args.put("identityName", identity.getName());
+    args.put("diffInDays", count);
+    args.put("pwdLastSet", pwdLastSet);
+    args.put("remainingDays", remainingDays);
+    options.setVariables(args);
+    context.sendEmailNotification(template, options);
+
+    return "Success";
+  }
+  </Source>
+</Rule>

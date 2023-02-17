@@ -1,0 +1,134 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Rule-PwdLastTrigger">
+  <Description>Populting identities for a Location</Description>
+  <ReferencedRules>
+    <Reference class="sailpoint.object.Rule" name="Rule-PwdLastSet_Reference"/>
+  </ReferencedRules>
+  <Signature returnType="String">
+    <Inputs>
+      <Argument name="log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="environment" type="Map">
+        <Description>
+          Arguments passed to the aggregation or refresh task.
+        </Description>
+      </Argument>
+      <Argument name="identity">
+        <Description>
+          The Identity object that represents the user
+          that is being aggregated.
+        </Description>
+      </Argument>
+      <Argument name="attributeDefinition">
+        <Description>
+          The AttributeDefinition object for this attribute.
+        </Description>
+      </Argument>
+      <Argument name="link">
+        <Description>
+          The Link object from the Identity, if this is an application
+          mapping rule.  For global mapping rules this will be void.
+        </Description>
+      </Argument>
+      <Argument name="attributeSource">
+        <Description>
+          The AttributeSource object.
+        </Description>
+      </Argument>
+      <Argument name="oldValue">
+        <Description>
+          The original value of the application account attribute.
+        </Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="attributeValue">
+        <Description>
+          The value of the attribute that should be populated.
+          The rule should return this value.
+        </Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>
+  import java.util.*;
+  import java.io.*;
+  import java.lang.String;
+  import sailpoint.object.Identity;
+  import sailpoint.object.Application;
+  import sailpoint.object.Link;
+  import sailpoint.api.IdentityService;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.tools.GeneralException;
+  import java.text.SimpleDateFormat;  
+  import java.util.Date;
+  import java.text.DateFormat;
+  import sailpoint.object.EmailOptions;
+  import sailpoint.object.EmailTemplate;
+  import sailpoint.object.QueryOptions;
+  import sailpoint.object.Filter;
+  import java.util.Iterator;
+  import sailpoint.object.AuditEvent;
+  import sailpoint.server.Auditor;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+
+
+  Logger log = Logger.getLogger("Rule.Password change trigger");
+  log.setLevel(Level.DEBUG);
+  log.error("********");
+
+  String emailTemplate="";
+  int differenceInDays=0;
+  String emailid="";
+  String pwdSet="";
+
+  QueryOptions qo = new QueryOptions();
+  List filters=new ArrayList();
+  filters.add(Filter.eq("links.application.name","Active Directory"));
+  qo.setFilters(filters);
+  log.error("filters"+filters);
+  List identities=context.getObjects(Identity.class, qo);
+
+  if(identities != null &amp;&amp; identities.size() &gt; 0)
+  {
+    for(Identity identity : identities)
+    {     
+      pwdSet=identity.getAttribute("pwdLastSet");
+      log.error("pwdSet**********************"+pwdSet);
+      emailid=identity.getEmail();
+      log.error("Email"+emailid);
+
+      int count=calculateDifferenceInDays(identity);    
+
+      if((count==65) || (count==75) || (count==85) || (count==86) || (count==87) || (count==88) || (count==89))
+      {
+
+        String emailstatus=sendEmailNotification(emailTemplate,  identity,  differenceInDays);
+
+        if (emailstatus.equalsIgnoreCase("Success"))
+        {
+          AuditEvent event = new AuditEvent();
+          event.setTarget(identity.getName());
+          event.setAction("EmailNotify");
+          event.setString1(pwdSet);
+          event.setString2(emailid);
+          Auditor.log(event);
+          context.saveObject(event);
+          context.commitTransaction();
+        }
+      }
+    }
+  }
+
+  </Source>
+</Rule>

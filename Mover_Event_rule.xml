@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Mover Event rule" type="IdentityTrigger">
+  <Description>This rule can be used for Certification Events that use rule triggers. The previousIdentity and newIdentity hold snapshots of the identity before the update has occurred and the state of the identity after the update, respectively.</Description>
+  <Signature returnType="boolean"/>
+  <Source>import sailpoint.object.Custom;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+  import sailpoint.api.SailPointContext;
+  import sailpoint.object.Identity;
+  import java.util.List;
+
+
+  Logger log = Logger.getLogger("Mover_Event");
+  log.setLevel(Level.DEBUG);
+  boolean haschanged= false;
+
+
+  Custom custom_config = context.getObject(Custom.class, "Custom_Mover");
+  List Attributes = (List)custom_config.get("MoverAttributes");
+  
+  for(String attribute : Attributes)
+  {
+    log.error("attribute:" +attribute);
+    String Prev_Value = previousIdentity.getAttribute(attribute);
+    String New_Value = newIdentity.getAttribute(attribute);    
+    log.error("Prev_Identity:" +Prev_Value);
+    log.error("new_Identity:" +New_Value);
+    
+    if(!Prev_Value.equalsIgnoreCase(New_Value))
+    {
+      haschanged= true;
+    }
+      
+  }
+  return haschanged;</Source>
+</Rule>

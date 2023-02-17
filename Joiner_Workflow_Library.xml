@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="Joiner Workflow Library">
+  <Source>
+
+  import java.util.List;
+
+  import sailpoint.object.Identity;
+  import sailpoint.object.Link;
+  import sailpoint.object.ProvisioningPlan;
+  import org.apache.log4j.Logger;
+  import org.apache.log4j.Level;
+  import sailpoint.api.SailPointContext;
+
+  public static getJoinerApplications(SailPointContext context)
+  {   
+    Custom custom = context.getObject(Custom.class, "JoinerApplications");
+    List list = new ArrayList();
+    if(custom!= null)
+    {
+      Attributes customAttrs = custom.getAttributes();
+      if(customAttrs != null)
+      {
+
+        list = customAttrs.getList("JoinerApplications");
+
+
+      }
+    }
+
+    return list;
+  }
+
+  public static ProvisioningPlan createJoinerPlan(String identityName, SailPointContext context)
+  {
+    ProvisioningPlan plan = new ProvisioningPlan();
+
+
+
+    List joinerApplications = getJoinerApplications(context);
+
+
+
+    if(joinerApplications.size() &gt; 0)
+    {
+      for(String applicationName : joinerApplications)
+      {
+        switch (applicationName)
+        {  
+          case "Active_Directory":
+
+
+
+          //String birthrightRole = getBirthRightRoleNames(identityName);
+
+
+
+          AccountRequest acctReq = new AccountRequest(ProvisioningPlan.AccountRequest.Operation.Create, applicationName, null, null);
+          //acctReq.add(new AttributeRequest("memberOf", ProvisioningPlan.Operation.Remove, "CN=Sailpoint_Test_Group,OU=BirthRight Groups,OU=Sailpoint Users,DC=mylab,DC=local");
+          acctReq.add(new AttributeRequest("memberOf", "CN=Sailpoint_Test_Group,OU=BirthRight Groups,OU=Sailpoint Users,DC=mylab,DC=local"));
+          plan.add(acctReq);
+          break;
+        }                
+      }
+    }
+
+
+
+    return plan;
+  }
+
+  </Source>
+</Rule>
