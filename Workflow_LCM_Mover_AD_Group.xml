@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow explicitTransitions="true" libraries="Identity" name="Workflow_LCM_Mover AD Group" type="IdentityLifecycle">
+  <Variable input="true" name="trigger">
+    <Description>The IdentityTrigger</Description>
+  </Variable>
+  <Variable input="true" name="event" transient="true">
+    <Description>The IdentityChangeEvent.  It can be used to build
+      the provisioning plan, but does not need to be
+      persisted with the case, so marked as transient.</Description>
+  </Variable>
+  <Variable input="true" name="identityName">
+    <Description>The name of the identity.</Description>
+  </Variable>
+  <Variable initializer="Remove" input="true" name="Operation">
+    <Description>Operations</Description>
+  </Variable>
+  <Variable initializer="MYLAB\Sailpoint_SOD_Check,MYLAB\Test_Group" input="true" name="Ad_Group">
+    <Description>Operations</Description>
+  </Variable>
+  <Variable initializer="Active_Directory" input="true" name="Application">
+    <Description>The name of the Application.</Description>
+  </Variable>
+  <Variable initializer="spadmin" input="true" name="launcher"/>
+  <Variable initializer="spadmin" input="true" name="fallbackApprover"/>
+  <Variable editable="true" initializer="false" name="foregroundProvisioning"/>
+  <Variable editable="true" initializer="false" name="optimisticProvisioning"/>
+  <Variable editable="true" name="plan"/>
+  <Variable editable="true" name="doRefresh"/>
+  <Variable name="displayName"/>
+  <Variable initializer="true" name="trace"/>
+  <Variable editable="true" initializer="serial" name="approvalMode"/>
+  <Variable editable="true" initializer="none" name="approvalScheme"/>
+  <Variable editable="true" initializer="AD Group Request" name="flow"/>
+  <Description>Process a new employee.</Description>
+  <Step icon="Start" name="Start" posX="28" posY="10">
+    <Transition to="Build Plan"/>
+  </Step>
+  <Step icon="Stop" name="Stop" posX="685" posY="20"/>
+  <Step icon="Default" name="Build Plan" posX="322" posY="23" resultVariable="plan">
+    <Script>
+      <Source>
+        import org.apache.log4j.Level;
+        import org.apache.log4j.Logger;
+        import sailpoint.api.SailPointContext;
+        import sailpoint.object.Custom;
+        import sailpoint.object.Identity;
+        import sailpoint.object.Link;
+        import sailpoint.object.Application;
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+        import sailpoint.object.ManagedAttribute;
+        import java.util.List;
+
+
+        Logger log = Logger.getLogger("AD Group");
+        log.setLevel(Level.DEBUG); 
+        String grpdn="";
+        String dn="";
+        ProvisioningPlan plan = new ProvisioningPlan();
+        Identity identity = context.getObjectByName(Identity.class, identityName);
+        String fname = identity.getFirstname();
+        String lname = identity.getLastname();
+        dn = "CN="+fname+" "+lname+",OU=BirthRight Accounts,OU=Sailpoint Users,DC=mylab,DC=local";
+        log.error("dn:" +dn);
+        AccountRequest acctReq = new AccountRequest(ProvisioningPlan.AccountRequest.Operation.Modify, Application, null, dn);
+        List grplist = Arrays.asList(Ad_Group.split(","));
+        log.error("grplist:" +grplist);
+        for (String adgrp : grplist)
+        {
+        QueryOptions qo = new QueryOptions();
+        qo.addFilter(Filter.eq("displayName", adgrp));
+        List list = context.getObjects(ManagedAttribute.class, qo);
+        for(ManagedAttribute ma : list)
+        {
+        grpdn = ma.getValue();
+        log.error("grpdn:" +grpdn);
+        }     
+
+        if(Operation.equalsIgnoreCase("Remove"))
+        {
+
+        acctReq.add(new AttributeRequest("memberOf",ProvisioningPlan.Operation.Remove, grpdn));
+
+        }
+        }
+        plan.add(acctReq);
+
+        log.error("plan:" +plan.toXml());
+
+        return plan;
+      </Source>
+    </Script>
+    <Transition to="Provision"/>
+  </Step>
+  <Step icon="Default" name="Provision" posX="486" posY="21">
+    <Arg name="identityEmailTemplate"/>
+    <Arg name="enableRetryRequest"/>
+    <Arg name="securityOfficerElectronicSignature"/>
+    <Arg name="fallbackApprover" value="ref:fallbackApprover"/>
+    <Arg name="endOnManualWorkItems"/>
+    <Arg name="userEmailTemplate"/>
+    <Arg name="policiesToCheck"/>
+    <Arg name="workItemComments"/>
+    <Arg name="project"/>
+    <Arg name="identityRequestId"/>
+    <Arg name="approvalSplitPoint"/>
+    <Arg name="source"/>
+    <Arg name="identityDisplayName"/>
+    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning"/>
+    <Arg name="ownerElectronicSignature"/>
+    <Arg name="batchRequestItemId"/>
+    <Arg name="saveUnmanagedPlan_WithProjectArgument"/>
+    <Arg name="splitPlans"/>
+    <Arg name="doRefresh" value="ref:doRefresh"/>
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="flow" value="ref:flow"/>
+    <Arg name="identityElectronicSignature"/>
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="approvalSet"/>
+    <Arg name="violationReviewDecision"/>
+    <Arg name="filterRejects"/>
+    <Arg name="splitProjects"/>
+    <Arg name="requireCommentsForDenial"/>
+    <Arg name="requesterEmailTemplate"/>
+    <Arg name="approvalEmailTemplate"/>
+    <Arg name="ticketManagementApplication"/>
+    <Arg name="securityOfficerName"/>
+    <Arg name="approvingIdentities"/>
+    <Arg name="managerEmailTemplate"/>
+    <Arg name="ticketId"/>
+    <Arg name="approvalScheme" value="ref:approvalScheme"/>
+    <Arg name="allowRequestsWithViolations"/>
+    <Arg name="workItemPriority"/>
+    <Arg name="managerElectronicSignature"/>
+    <Arg name="requireViolationReviewComments"/>
+    <Arg name="splitApprovalSet"/>
+    <Arg name="approvalMode" value="ref:approvalMode"/>
+    <Arg name="trace" value="ref:trace"/>
+    <Arg name="endOnProvisioningForms"/>
+    <Arg name="splitWorkItemComments"/>
+    <Arg name="requireCommentsForApproval"/>
+    <Arg name="notificationScheme"/>
+    <Arg name="policyViolations"/>
+    <Arg name="policyScheme"/>
+    <Arg name="setPreviousApprovalDecisions"/>
+    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
+    <Arg name="securityOfficerEmailTemplate"/>
+    <Return name="project" to="project"/>
+    <WorkflowRef>
+      <Reference class="sailpoint.object.Workflow" name="LCM Provisioning"/>
+    </WorkflowRef>
+    <Transition to="Stop"/>
+  </Step>
+</Workflow>

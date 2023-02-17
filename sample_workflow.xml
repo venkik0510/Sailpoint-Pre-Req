@@ -1,0 +1,316 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow configForm="Provisioning Workflow Config Form" explicitTransitions="true" handler="sailpoint.api.StandardWorkflowHandler" libraries="Identity,BatchRequest" name="sample workflow" type="IdentityLifecycle">
+  <Variable initializer="true" name="transient"/>
+  <Variable initializer="false" name="trace"/>
+  <Variable name="identityModel"/>
+  <Variable name="identityName"/>
+  <Variable name="confirmationForm"/>
+  <Variable initializer="spadmin" input="true" name="launcher"/>
+  <Variable initializer="spadmin" input="true" name="fallbackApprover"/>
+  <Variable editable="true" initializer="false" name="foregroundProvisioning"/>
+  <Variable editable="true" initializer="false" name="optimisticProvisioning"/>
+  <Variable editable="true" name="plan"/>
+  <Variable editable="true" name="project"/>
+  <Variable editable="true" name="adFailed"/>
+  <Variable editable="true" name="doRefresh"/>
+  <Variable initializer="AD Update" name="flow"/>
+  <Variable editable="true" initializer="serial" name="approvalMode"/>
+  <Variable editable="true" initializer="none" name="approvalScheme"/>
+  <Step icon="Start" name="Start" posX="10" posY="92">
+    <Transition to="Initialize"/>
+  </Step>
+  <Step action="call:getIdentityModel" name="Initialize" posX="100" posY="94" resultVariable="identityModel">
+    <Description>
+      Initialize the data for the identity that we are creating.
+    </Description>
+    <Transition to="Registration Form"/>
+  </Step>
+  <Step icon="Approval" name="Registration Form" posX="211" posY="91">
+    <Approval mode="serial" owner="ref:launcher" return="identityModel">
+      <Arg name="workItemType" value="Form"/>
+      <Arg name="workItemDescription" value="test form"/>
+      <Arg name="workItemForm" value="TestForm"/>
+      <Arg name="workItemFormBasePath" value="identityModel"/>
+    </Approval>
+    <Description>
+      Display the registration form to collect information about the registrant.
+    </Description>
+    <Transition to="Build Confirmation Form"/>
+  </Step>
+  <Step action="call:buildReadOnlyForm" name="Build Confirmation Form" posX="288" resultVariable="confirmationForm">
+    <Arg name="helpText" value="lcm_registration_confirmation_text"/>
+    <Arg name="form" value="TestForm"/>
+    <Arg name="nextButtonLabel" value="label_confirm"/>
+    <Description>
+      Create the confirmation form to be displayed.
+    </Description>
+    <Transition to="Confirmation Form"/>
+  </Step>
+  <Step icon="Approval" name="Confirmation Form" posX="425" posY="14">
+    <Approval mode="serial" owner="ref:launcher" return="identityModel">
+      <Arg name="workItemType" value="Form"/>
+      <Arg name="workItemDescription" value="Confirmation form"/>
+      <Arg name="workItemForm" value="ref:confirmationForm"/>
+      <Arg name="workItemFormBasePath" value="identityModel"/>
+    </Approval>
+    <Description>
+      Display the confirmation form to the registrant.
+    </Description>
+    <Transition to="Registration Form" when="!approved"/>
+    <Transition to="Build Plan"/>
+  </Step>
+  <Step name="Build Plan" posX="530" posY="13" resultVariable="plan">
+    <Description>
+      Convert the registration request into a provisioning plan.
+    </Description>
+    <Script>
+      <Source> 
+        import org.apache.log4j.Logger;
+        import org.apache.log4j.Level;
+        import sailpoint.object.Identity;
+        import sailpoint.api.SailPointContext;
+        import sailpoint.object.Application;
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+
+        Logger log = Logger.getLogger("Get Manager Value");
+        log.setLevel(Level.DEBUG);
+
+
+
+        String fname= identityModel.get("firstname");
+        log.error("fname:" +fname);
+        String lname= identityModel.get("lastname");
+        log.error("lname:" +lname);
+        String manager= identityModel.get("manager");
+        log.error("mgr:" +manager);
+        Identity mgrid =context.getObjectByName(Identity.class, manager);
+        log.error("mgrid:" +mgrid);
+        String mgrfname= mgrid.getAttribute("firstname");
+        log.error("mgrfname:" +mgrfname);
+        String mgrlname= mgrid.getAttribute("lastname");
+        log.error("mgrlname:" +mgrlname);
+        String mgrdn = mgrfname+" "+mgrlname;
+        log.error("mgrdn:" +mgrdn);
+        String jobtitle= identityModel.get("jobtitle");
+        log.error("jobtitle:" +jobtitle);
+        String department= identityModel.get("department");
+        log.error("department:" +department);
+
+        String name= $(identityModel.name);
+        workflow.put("identityName", name);
+        log.error("name:" +name);
+        Identity identity = context.getObjectByName(Identity.class, name);
+        log.error("identity:" +identity);
+        String mangr= identity.getAttribute("manager");
+        log.error("mangr:" +mangr);
+        String title1 = identity.getAttribute("jobtitle");
+        log.error("title1:" +title1);
+        String depart = identity.getAttribute("department");
+        log.error("depart:" +depart);
+        String dn = "CN="+fname+" "+lname+",OU=BirthRight Accounts,OU=Sailpoint Users,DC=mylab,DC=local";
+        log.error("dn:" +dn);
+        String MGRDN = "CN="+mgrdn+",OU=Accounts,OU=Sailpoint Users,DC=mylab,DC=local";
+        log.error("MGRDN:" +MGRDN);
+
+
+
+        if((!manager.equalsIgnoreCase(mangr)) || (!jobtitle.equalsIgnoreCase(title1)) || (!department.equalsIgnoreCase(depart)))
+        {
+        log.error("inside global loop");
+        ProvisioningPlan plan1 = new ProvisioningPlan();
+        plan1.setNativeIdentity(name);
+        AccountRequest Ar = new AccountRequest();
+        Ar.setOperation(AccountRequest.Operation.Modify);
+        Ar.setApplication("Active_Directory");
+        Ar.setNativeIdentity(dn);
+        if(!manager.equalsIgnoreCase(mangr)){
+        log.error("inside mgr loop");
+        Ar.add(new AttributeRequest("manager", ProvisioningPlan.Operation.Set, MGRDN));
+        }
+        if(!jobtitle.equalsIgnoreCase(title1)){
+        log.error("inside title loop");
+        Ar.add(new AttributeRequest("title", ProvisioningPlan.Operation.Set, jobtitle));
+        }
+        if(!department.equalsIgnoreCase(depart)){
+        log.error("inside dept loop");
+        Ar.add(new AttributeRequest("department", ProvisioningPlan.Operation.Set, department));
+        }
+        plan1.add(Ar);
+        log.error("plan:::::::" +plan1.toXml());
+        workflow.put("plan", plan1);
+        plan=plan1;
+        }         
+        //log.error("workflowVariables:" +workflow.getVariables());
+        else
+        {
+        log.error("nochange");
+        }
+        return plan;
+      </Source>
+    </Script>
+    <Transition to="Provision" when="plan !=null"/>
+  </Step>
+  <Step name="Provision" posX="652" posY="13">
+    <Arg name="identityEmailTemplate"/>
+    <Arg name="enableRetryRequest"/>
+    <Arg name="securityOfficerElectronicSignature"/>
+    <Arg name="fallbackApprover" value="ref:fallbackApprover"/>
+    <Arg name="endOnManualWorkItems"/>
+    <Arg name="userEmailTemplate"/>
+    <Arg name="policiesToCheck"/>
+    <Arg name="workItemComments"/>
+    <Arg name="project" value="ref:project"/>
+    <Arg name="identityRequestId"/>
+    <Arg name="approvalSplitPoint"/>
+    <Arg name="source"/>
+    <Arg name="identityDisplayName"/>
+    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning"/>
+    <Arg name="ownerElectronicSignature"/>
+    <Arg name="batchRequestItemId"/>
+    <Arg name="saveUnmanagedPlan_WithProjectArgument"/>
+    <Arg name="splitPlans"/>
+    <Arg name="doRefresh"/>
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="flow" value="ref:flow"/>
+    <Arg name="identityElectronicSignature"/>
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="approvalSet"/>
+    <Arg name="violationReviewDecision"/>
+    <Arg name="filterRejects"/>
+    <Arg name="splitProjects"/>
+    <Arg name="requireCommentsForDenial"/>
+    <Arg name="requesterEmailTemplate"/>
+    <Arg name="approvalEmailTemplate"/>
+    <Arg name="ticketManagementApplication"/>
+    <Arg name="securityOfficerName"/>
+    <Arg name="approvingIdentities"/>
+    <Arg name="managerEmailTemplate"/>
+    <Arg name="ticketId"/>
+    <Arg name="approvalScheme" value="ref:approvalScheme"/>
+    <Arg name="allowRequestsWithViolations"/>
+    <Arg name="workItemPriority"/>
+    <Arg name="managerElectronicSignature"/>
+    <Arg name="requireViolationReviewComments"/>
+    <Arg name="splitApprovalSet"/>
+    <Arg name="approvalMode" value="ref:approvalMode"/>
+    <Arg name="trace"/>
+    <Arg name="endOnProvisioningForms"/>
+    <Arg name="splitWorkItemComments"/>
+    <Arg name="requireCommentsForApproval"/>
+    <Arg name="notificationScheme"/>
+    <Arg name="policyViolations"/>
+    <Arg name="policyScheme"/>
+    <Arg name="setPreviousApprovalDecisions"/>
+    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
+    <Arg name="securityOfficerEmailTemplate"/>
+    <Return name="project" to="project"/>
+    <WorkflowRef>
+      <Reference class="sailpoint.object.Workflow" name="LCM Provisioning"/>
+    </WorkflowRef>
+    <Transition to="Check Prov Status"/>
+  </Step>
+  <Step icon="Stop" name="Stop" posX="900" posY="132"/>
+  <Step icon="Default" name="Check Prov Status" posX="760" posY="12">
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="identityModel" value="ref:identityModel"/>
+    <Arg name="project" value="ref:project"/>
+    <Script>
+      <Source>
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningResult;
+
+        log.error(project.toXml());
+        adFailed = "false";
+        hasFailed = "false";
+        if(project != null)
+        {
+        adFailed = project.getPlan( "Active_Directory" ) != null ? "false" : "true";
+        log.error("ADFailed Error:" +adFailed);
+
+        List projectPlans = project.getPlans();
+
+        if(projectPlans != null)
+        {
+        for (ProvisioningPlan plantest : projectPlans)
+        {
+        if(plantest.getAccountRequests().get(0).getResult() != null)
+        {
+        ProvisioningResult result = plantest.getAccountRequests().get(0).getResult();
+
+        if(result!=null &amp;&amp; !result.getStatus().equals(ProvisioningResult.STATUS_COMMITTED)){
+
+        if(Active_Directory.equalsIgnoreCase(plantest.getAccountRequests().get(0).getApplication())){
+
+        adFailed = "true";
+        log.error( "AD provisioning failed" );
+
+        }
+
+        hasFailed = true;
+
+        }
+        } else if( plantest.getResult() != null ){
+
+        ProvisioningResult result=plantest.getResult();
+
+        if(result!=null &amp;&amp; !result.getStatus().equals(ProvisioningResult.STATUS_COMMITTED)){
+
+        if(Active_Directory.equalsIgnoreCase(plantest.getTargetIntegration())){
+
+        adFailed = "true";
+        log.error( "AD provisioning failed" );
+
+        }					
+        hasFailed = true;
+        }
+        }
+        }
+
+        }}else{
+
+        hasFailed = true;
+
+        adFailed = "true";				
+        }
+
+        workflow.put( "adFailed" , adFailed );
+      </Source>
+    </Script>
+    <Transition to="Re-Assign"/>
+  </Step>
+  <Step icon="Default" name="Re-Assign" posX="898" posY="11">
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="identityModel" value="ref:identityModel"/>
+    <Script>
+      <Source>
+        import sailpoint.object.Identity;
+
+        String jobtitle1 = identityModel.get("jobtitle");
+        String department1 = identityModel.get("department");
+        String manager = identityModel.get("manager");
+        Identity mgrid = context.getObjectByName(Identity.class, manager);
+
+        if(adFailed.equalsIgnoreCase("false"))
+        {  
+        Identity id = context.getObjectByName(Identity.class, identityName);
+
+        id.setAttribute("manager", mgrid);
+        id.setAttribute("jobtitle", jobtitle1);
+        id.setAttribute("department", department1);
+        }
+        else
+        {
+        log.error("no change");
+        }
+
+        context.commitTransaction();
+
+        context.decache();      
+      </Source>
+    </Script>
+    <Transition to="Stop"/>
+  </Step>
+</Workflow>

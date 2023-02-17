@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow explicitTransitions="true" name="Mover WF for reports" type="IdentityLifecycle">
+  <Variable input="true" name="trigger">
+    <Description>Identity Trigger</Description>
+  </Variable>
+  <Variable input="true" name="event">
+    <Description>Identity Event</Description>
+  </Variable>
+  <Step icon="Start" name="Start" posX="20" posY="20">
+    <Transition to="Event step"/>
+  </Step>
+  <Step icon="Stop" name="Stop" posX="341" posY="25"/>
+  <Step icon="Default" name="Event step" posX="174" posY="26">
+    <Script>
+      <Source>
+         import sailpoint.object.AuditEvent;
+        import sailpoint.server.Auditor;
+import sailpoint.object.*;
+
+String Old_Valuetitle = event.getOldObject().getAttribute("jobtitle");
+String New_Valuetitle = event.getNewObject().getAttribute("jobtitle");
+
+String Old_Valuedept = event.getOldObject().getAttribute("department");
+String New_Valuedept = event.getNewObject().getAttribute("department");
+
+AuditEvent event1 = new AuditEvent();
+
+event1.setAction("MoverEvent");
+
+event1.setTarget(event.getOldObject().getName());
+
+event1.setString1(Old_Valuetitle);
+
+event1.setString2(New_Valuetitle);
+
+event1.setString3(Old_Valuedept);
+
+event1.setString4(New_Valuedept);
+
+ Auditor.log(event1);
+   
+ context.saveObject(event1);
+   
+ context.commitTransaction();
+</Source>
+    </Script>
+    <Transition to="Stop"/>
+  </Step>
+</Workflow>

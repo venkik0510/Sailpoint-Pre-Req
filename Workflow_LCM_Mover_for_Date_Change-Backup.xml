@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow explicitTransitions="true" libraries="Identity" name="Workflow_LCM_Mover for Date Change-Backup" type="IdentityLifecycle">
+  <Variable input="true" name="trigger">
+    <Description>The IdentityTrigger</Description>
+  </Variable>
+  <Variable input="true" name="event" transient="true">
+    <Description>The IdentityChangeEvent.  It can be used to build
+      the provisioning plan, but does not need to be
+      persisted with the case, so marked as transient.</Description>
+  </Variable>
+  <Variable input="true" name="identityName">
+    <Description>The name of the identity.</Description>
+  </Variable>
+  <Variable input="true" name="endDate">
+    <Description>The name of the identity.</Description>
+  </Variable>
+  <Variable initializer="spadmin" input="true" name="launcher"/>
+  <Variable initializer="spadmin" input="true" name="fallbackApprover"/>
+  <Variable editable="true" initializer="false" name="foregroundProvisioning"/>
+  <Variable editable="true" initializer="false" name="optimisticProvisioning"/>
+  <Variable editable="true" name="plan"/>
+  <Variable editable="true" name="doRefresh"/>
+  <Variable name="displayName"/>
+  <Variable initializer="true" name="trace"/>
+  <Variable editable="true" initializer="serial" name="approvalMode"/>
+  <Variable editable="true" initializer="none" name="approvalScheme"/>
+  <Variable editable="true" name="adFailed"/>
+  <Variable editable="true" initializer="New Mover Request" name="flow"/>
+  <Description>Process a new employee.</Description>
+  <Step icon="Start" name="Start" posX="28" posY="10">
+    <Transition to="Setting Identity Attribute"/>
+  </Step>
+  <Step icon="Stop" name="Stop" posX="685" posY="20"/>
+  <Step icon="Default" name="Build Plan" posX="322" posY="23" resultVariable="plan">
+    <Script>
+      <Source>import org.apache.log4j.Level;
+        import org.apache.log4j.Logger;
+        import sailpoint.api.SailPointContext;
+        import sailpoint.object.Custom;
+        import sailpoint.object.Identity;
+        import sailpoint.object.Link;
+        import sailpoint.object.Application;
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+        import org.joda.time.DateTime;
+        import org.joda.time.DateTimeZone;
+        import org.joda.time.Interval;
+        import java.util.ArrayList;
+        import java.util.List;
+        import java.util.HashMap;
+        import java.util.*;
+        import java.text.*;
+
+        Logger log = Logger.getLogger("Mover_Event");
+        log.setLevel(Level.DEBUG); 
+
+        Identity identity = context.getObjectByName(Identity.class, identityName);
+        String type = identity.getAttribute("type1");
+        log.error("type:" +type);
+        List links = identity.getLinks();
+        log.error("links:" +links);
+        String fname = identity.getFirstname();
+        String lname = identity.getLastname();
+        String dn = "CN="+fname+" "+lname+",OU=Accounts,OU=Sailpoint Users,DC=mylab,DC=local";
+        log.error("dn:" +dn);
+
+        ProvisioningPlan plan = new ProvisioningPlan();
+        if(links.size()&gt;0 &amp;&amp; links != null &amp;&amp; type.equalsIgnoreCase("Contractor"))
+        {
+        log.error("inside if");
+        for(Link link : links)
+        {    
+        log.error("inside for");
+        String app = link.getApplicationName();
+        log.error("app:" +app);
+        String nativeId = link.getNativeIdentity();
+        log.error("nativeid:" +nativeId);
+        Application applicationName = context.getObjectByName(Application.class, app);
+        log.error("appname:" +applicationName);
+        plan.setIdentity(identity);
+        AccountRequest acctReq = new AccountRequest(ProvisioningPlan.AccountRequest.Operation.Disable, applicationName, null, nativeId);
+        plan.add(acctReq);
+        }
+        }
+
+        log.error("plan:" +plan.toXml());
+
+        return plan;
+      </Source>
+    </Script>
+    <Transition to="Provision"/>
+  </Step>
+  <Step icon="Default" name="Provision" posX="486" posY="21">
+    <Arg name="identityEmailTemplate"/>
+    <Arg name="enableRetryRequest"/>
+    <Arg name="securityOfficerElectronicSignature"/>
+    <Arg name="fallbackApprover" value="ref:fallbackApprover"/>
+    <Arg name="endOnManualWorkItems"/>
+    <Arg name="userEmailTemplate"/>
+    <Arg name="policiesToCheck"/>
+    <Arg name="workItemComments"/>
+    <Arg name="project"/>
+    <Arg name="identityRequestId"/>
+    <Arg name="approvalSplitPoint"/>
+    <Arg name="source"/>
+    <Arg name="identityDisplayName"/>
+    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning"/>
+    <Arg name="ownerElectronicSignature"/>
+    <Arg name="batchRequestItemId"/>
+    <Arg name="saveUnmanagedPlan_WithProjectArgument"/>
+    <Arg name="splitPlans"/>
+    <Arg name="doRefresh" value="ref:doRefresh"/>
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="flow" value="ref:flow"/>
+    <Arg name="identityElectronicSignature"/>
+    <Arg name="identityName" value="ref:identityName"/>
+    <Arg name="approvalSet"/>
+    <Arg name="violationReviewDecision"/>
+    <Arg name="filterRejects"/>
+    <Arg name="splitProjects"/>
+    <Arg name="requireCommentsForDenial"/>
+    <Arg name="requesterEmailTemplate"/>
+    <Arg name="approvalEmailTemplate"/>
+    <Arg name="ticketManagementApplication"/>
+    <Arg name="securityOfficerName"/>
+    <Arg name="approvingIdentities"/>
+    <Arg name="managerEmailTemplate"/>
+    <Arg name="ticketId"/>
+    <Arg name="approvalScheme" value="ref:approvalScheme"/>
+    <Arg name="allowRequestsWithViolations"/>
+    <Arg name="workItemPriority"/>
+    <Arg name="managerElectronicSignature"/>
+    <Arg name="requireViolationReviewComments"/>
+    <Arg name="splitApprovalSet"/>
+    <Arg name="approvalMode" value="ref:approvalMode"/>
+    <Arg name="trace" value="ref:trace"/>
+    <Arg name="endOnProvisioningForms"/>
+    <Arg name="splitWorkItemComments"/>
+    <Arg name="requireCommentsForApproval"/>
+    <Arg name="notificationScheme"/>
+    <Arg name="policyViolations"/>
+    <Arg name="policyScheme"/>
+    <Arg name="setPreviousApprovalDecisions"/>
+    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
+    <Arg name="securityOfficerEmailTemplate"/>
+    <Return name="project" to="project"/>
+    <WorkflowRef>
+      <Reference class="sailpoint.object.Workflow" name="LCM Provisioning"/>
+    </WorkflowRef>
+    <Transition to="Stop"/>
+  </Step>
+  <Step icon="Default" name="Setting Identity Attribute" posX="163" posY="17">
+    <Script>
+      <Source>
+        import sailpoint.object.Identity;
+        import sailpoint.api.SailPointContext;
+
+        Identity identity = context.getObjectByName(Identity.class, identityName);
+
+        identity.setAttribute("endDate", endDate);
+        context.commitTransaction();
+
+      </Source>
+    </Script>
+    <Transition to="Build Plan"/>
+  </Step>
+</Workflow>
